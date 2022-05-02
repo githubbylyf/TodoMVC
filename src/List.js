@@ -1,8 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { todoContext } from './context-manager';
 
 function List() {
     const {todo, refreshLocalTodo, hash} = useContext(todoContext);
+
+    const [editingId, setEdtingId] = useState('');
 
     function checkTodo(id) {
         let checkindex = todo.findIndex(item => item.timeid === id);
@@ -22,26 +24,33 @@ function List() {
     }
 
     function modify(e, id) {
-        e.target.setAttribute('contenteditable','true');
-        e.target.focus();
+        setEdtingId(id);
+
+        setTimeout(() => {
+            e.target.focus();
+        },0);
+
+        let selection = window.getSelection();
+        selection.selectAllChildren(e.target);
+        selection.collapseToEnd();
+    }
+
+    function blur(e, id){
         let index = todo.findIndex(item => item.timeid === id);
 
-        function blur(){
-            if(deleteBlank(e.target.textContent)){
-                todo[index].content = deleteBlank(e.target.textContent);
-            } else {
-                todo.splice(index, 1);
-            }
-            refreshLocalTodo(todo);
-            e.target.removeAttribute('contenteditable');
+        if(deleteBlank(e.target.textContent)){
+            todo[index].content = deleteBlank(e.target.textContent);
+        } else {
+            todo.splice(index, 1);
         }
 
-        e.target.onblur = blur;
+        refreshLocalTodo(todo);
+        setEdtingId('');
+    }
 
-        e.target.onkeydown = function(kde){
-            if(kde.code ==='Enter'){
-                e.target.blur();
-            }
+    function keyDown(e, id) {
+        if(e.code ==='Enter'){
+            e.target.blur(e, id);
         }
     }
 
@@ -67,8 +76,8 @@ function List() {
 
     let todos = newTodo().map((item) => 
             <div key={item.timeid}>
-                <input type='checkbox' className='check' checked={item.completed} onChange={()=>checkTodo(item.timeid)}></input>
-                <label onDoubleClick={(e)=>modify(e, item.timeid)}>{item.content}</label>
+                <input type='checkbox' checked={item.completed} onChange={()=>checkTodo(item.timeid)}></input>
+                <label contentEditable={editingId === item.timeid ? true : false} suppressContentEditableWarning onDoubleClick={(e)=>modify(e, item.timeid)} onBlur={(e)=>blur(e, item.timeid)} onKeyDown={(e)=>keyDown(e, item.timeid)}>{item.content}</label>
                 <button onClick={()=>deleteTodo(item.timeid)}></button>
             </div>
         );
